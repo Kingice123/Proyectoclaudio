@@ -1,0 +1,444 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mini Apps</title>
+
+<style>
+body {
+  font-family: Arial;
+  text-align: center;
+  background: #111;
+  color: white;
+}
+
+.menu button {
+  margin: 10px;
+  padding: 15px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.section { display:none; }
+.active { display:block; }
+
+.grid {
+  display:grid;
+  justify-content:center;
+  margin:20px;
+}
+
+.cell {
+  border:1px solid white;
+  padding:8px;
+  cursor:pointer;
+  user-select:none;
+}
+
+.selected { background: yellow; color:black; }
+
+input {
+  text-align:center;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+button { cursor:pointer; margin:5px; }
+
+/* CRUCIGRAMA */
+.celda { position: relative; }
+
+.numero {
+  position: absolute;
+  top: 1px;
+  left: 3px;
+  font-size: 10px;
+  color: yellow;
+}
+
+/* SNAKE */
+#snakeCanvas {
+  background:black;
+  border:3px solid white;
+  margin-top:20px;
+  box-shadow:0 0 15px lime;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌞 Centro de Apps</h1>
+
+<div class="menu">
+<button onclick="show('sopa')">🧩</button>
+<button onclick="show('crucigrama')">✍️</button>
+<button onclick="show('quiz')">⚽</button>
+<button onclick="show('puzzle')">🔢</button>
+<button onclick="show('snake')">🐍</button>
+</div>
+
+<!-- SOPA -->
+<div id="sopa" class="section active">
+<h2>Sopa de Letras</h2>
+<div id="grid" class="grid"></div>
+<p id="listaPalabras"></p>
+</div>
+
+<!-- CRUCIGRAMA -->
+<div id="crucigrama" class="section">
+<h2>Crucigrama de Colores</h2>
+
+<div id="crucigramaGrid" style="
+display:grid;
+grid-template-columns: repeat(11,35px);
+justify-content:center;
+gap:2px;
+margin:20px;">
+</div>
+
+<div>
+<h3>Horizontales</h3>
+<p>1. Color del cielo</p>
+<p>3. Color de la sangre</p>
+<p>5. Color oscuro</p>
+
+<h3>Verticales</h3>
+<p>2. Color del sol</p>
+<p>4. Color de la naturaleza</p>
+</div>
+
+<button onclick="evaluarCrucigramaReal()">Finalizar</button>
+<p id="resultadoCrucigrama"></p>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="section">
+<h2>Quiz Fútbol Europeo</h2>
+<div id="quizContainer"></div>
+<button onclick="evaluarQuiz()">Finalizar</button>
+<p id="resultadoQuiz"></p>
+</div>
+
+<!-- PUZZLE -->
+<div id="puzzle" class="section">
+<h2>Números Pares</h2>
+<div id="puzzleGrid"></div>
+<p>Selecciona solo números pares</p>
+<button onclick="evaluarPares()">Finalizar</button>
+<p id="resultadoPares"></p>
+</div>
+
+<!-- SNAKE -->
+<div id="snake" class="section">
+<h2>🐍 Snake Clásico</h2>
+
+<canvas id="snakeCanvas" width="400" height="400"></canvas>
+
+<p id="snakeInfo">Manzanas: 0 | Tiempo: 0s</p>
+
+<button onclick="iniciarSnake()">Iniciar</button>
+<button onclick="reiniciarSnake()">Reintentar</button>
+
+<p id="snakeGameOver"></p>
+</div>
+
+<script>
+function show(id){
+ document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+}
+
+/* SOPA */
+const palabras = ["AZUL","AMARILLO","ROJO","VERDE","NEGRO"];
+const size = 12;
+let grid = Array(size).fill().map(()=>Array(size).fill(""));
+
+function colocarPalabra(palabra, fila, col){
+ for(let i=0;i<palabra.length;i++){
+  grid[fila][col+i] = palabra[i];
+ }
+}
+
+colocarPalabra("AZUL",0,0);
+colocarPalabra("ROJO",2,2);
+colocarPalabra("VERDE",4,1);
+colocarPalabra("NEGRO",6,3);
+colocarPalabra("AMARILLO",8,1);
+
+const letras="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+for(let i=0;i<size;i++){
+ for(let j=0;j<size;j++){
+  if(grid[i][j]==""){
+   grid[i][j]=letras[Math.floor(Math.random()*letras.length)];
+  }
+ }
+}
+
+const gridDiv = document.getElementById("grid");
+gridDiv.style.gridTemplateColumns = `repeat(${size},30px)`;
+
+let seleccion = [];
+let mouseDown = false;
+
+grid.forEach((fila)=>{
+ fila.forEach((letra)=>{
+  let div=document.createElement("div");
+  div.className="cell";
+  div.textContent=letra;
+
+  div.onmousedown=()=>{ mouseDown=true; seleccion=[]; seleccionar(div); };
+  div.onmouseover=()=>{ if(mouseDown) seleccionar(div); };
+  div.onmouseup=()=>{ mouseDown=false; verificar(); };
+
+  gridDiv.appendChild(div);
+ });
+});
+
+document.body.onmouseup=()=>mouseDown=false;
+
+function seleccionar(div){
+ if(!seleccion.includes(div)){
+  seleccion.push(div);
+  div.classList.add("selected");
+ }
+}
+
+function verificar(){
+ let palabra = seleccion.map(d=>d.textContent).join("");
+ let palabraInv = palabra.split("").reverse().join("");
+
+ if(palabras.includes(palabra) || palabras.includes(palabraInv)){
+  seleccion.forEach(d=>d.style.background="green");
+ } else {
+  seleccion.forEach(d=>d.classList.remove("selected"));
+ }
+ seleccion=[];
+}
+
+document.getElementById("listaPalabras").textContent =
+ "Palabras: " + palabras.join(", ");
+
+/* CRUCIGRAMA */
+const palabrasCrucigrama = [
+ {palabra:"AZUL", fila:0, col:0, dir:"H", num:1},
+ {palabra:"ROJO", fila:2, col:0, dir:"H", num:3},
+ {palabra:"NEGRO", fila:4, col:0, dir:"H", num:5},
+ {palabra:"AMARILLO", fila:0, col:2, dir:"V", num:2},
+ {palabra:"VERDE", fila:0, col:4, dir:"V", num:4}
+];
+
+const sizeC = 11;
+let gridC = Array(sizeC).fill().map(()=>Array(sizeC).fill(""));
+let inicioCeldas = {};
+
+function colocar(p){
+ for(let i=0;i<p.palabra.length;i++){
+  if(p.dir=="H") gridC[p.fila][p.col+i]=p.palabra[i];
+  else gridC[p.fila+i][p.col]=p.palabra[i];
+ }
+ inicioCeldas[`${p.fila}-${p.col}`] = p.num;
+}
+
+palabrasCrucigrama.forEach(colocar);
+
+const cont = document.getElementById("crucigramaGrid");
+
+for(let i=0;i<sizeC;i++){
+ for(let j=0;j<sizeC;j++){
+  let wrapper=document.createElement("div");
+  wrapper.className="celda";
+
+  let input=document.createElement("input");
+  input.maxLength=1;
+  input.style.width="35px";
+  input.style.height="35px";
+
+  if(gridC[i][j]==""){
+   input.disabled=true;
+   input.style.background="#222";
+  }
+
+  input.dataset.row=i;
+  input.dataset.col=j;
+
+  if(inicioCeldas[`${i}-${j}`]){
+   let num=document.createElement("div");
+   num.className="numero";
+   num.textContent=inicioCeldas[`${i}-${j}`];
+   wrapper.appendChild(num);
+  }
+
+  wrapper.appendChild(input);
+  cont.appendChild(wrapper);
+ }
+}
+
+function evaluarCrucigramaReal(){
+ let correctas=0;
+ palabrasCrucigrama.forEach(p=>{
+  let ok=true;
+  for(let i=0;i<p.palabra.length;i++){
+   let fila=p.fila+(p.dir=="V"?i:0);
+   let col=p.col+(p.dir=="H"?i:0);
+   let input=document.querySelector(`input[data-row="${fila}"][data-col="${col}"]`);
+   if(!input || input.value.toUpperCase()!=p.palabra[i]) ok=false;
+  }
+  if(ok) correctas++;
+ });
+ document.getElementById("resultadoCrucigrama").textContent =
+ "Palabras correctas: "+correctas+"/"+palabrasCrucigrama.length;
+}
+
+/* QUIZ */
+const quiz=[
+["¿Quién ganó la Champions 2020?",["Bayern","Madrid","Chelsea"],0],
+["¿Equipo de Messi en 2023?",["PSG","Barça","City"],0],
+["Liga inglesa se llama?",["Premier","Liga","Serie A"],0],
+["Equipo italiano famoso?",["Milan","PSG","Bayern"],0],
+["Jugador portugués famoso?",["Ronaldo","Messi","Neymar"],0]
+];
+
+let qc=document.getElementById("quizContainer");
+
+quiz.forEach((q,i)=>{
+ qc.innerHTML+=`<p>${q[0]}</p>`;
+ q[1].forEach((op,j)=>{
+  qc.innerHTML+=`<input type="radio" name="q${i}" value="${j}">${op}<br>`;
+ });
+});
+
+function evaluarQuiz(){
+ let score=0;
+ quiz.forEach((q,i)=>{
+  let sel=document.querySelector(`input[name="q${i}"]:checked`);
+  if(sel && sel.value==q[2]) score++;
+ });
+ document.getElementById("resultadoQuiz").textContent =
+ "Aciertos: "+score+"/"+quiz.length;
+}
+
+/* PUZZLE */
+let pg=document.getElementById("puzzleGrid");
+let seleccionados = [];
+
+for(let i=1;i<=20;i++){
+ let b=document.createElement("button");
+ b.textContent=i;
+
+ b.onclick=()=>{
+  if(!seleccionados.includes(i)){
+   seleccionados.push(i);
+   b.style.background="orange";
+  }
+ };
+
+ pg.appendChild(b);
+}
+
+function evaluarPares(){
+ let correctos = seleccionados.filter(n=>n%2==0).length;
+ document.getElementById("resultadoPares").textContent =
+  "Seleccionaste bien "+correctos+" números pares de "+seleccionados.length;
+}
+
+/* SNAKE */
+const canvas = document.getElementById("snakeCanvas");
+const ctx = canvas.getContext("2d");
+
+let snake, direction, apple, score, gameInterval, startTime, tiempo;
+
+const gridSize = 20;
+const tileCount = canvas.width / gridSize;
+
+function iniciarSnake(){
+ snake = [{x:10,y:10}];
+ direction = {x:1,y:0};
+ generarManzana();
+ score = 0;
+ tiempo = 0;
+ startTime = Date.now();
+
+ document.getElementById("snakeGameOver").textContent = "";
+
+ clearInterval(gameInterval);
+ gameInterval = setInterval(gameLoop, 120);
+}
+
+function reiniciarSnake(){
+ iniciarSnake();
+}
+
+function generarManzana(){
+ apple = {
+  x: Math.floor(Math.random()*tileCount),
+  y: Math.floor(Math.random()*tileCount)
+ };
+}
+
+document.addEventListener("keydown", e=>{
+ if(e.key==="ArrowUp" && direction.y===0){ direction={x:0,y:-1}; }
+ if(e.key==="ArrowDown" && direction.y===0){ direction={x:0,y:1}; }
+ if(e.key==="ArrowLeft" && direction.x===0){ direction={x:-1,y:0}; }
+ if(e.key==="ArrowRight" && direction.x===0){ direction={x:1,y:0}; }
+});
+
+function gameLoop(){
+ let head = {x: snake[0].x + direction.x, y: snake[0].y + direction.y};
+
+ if(head.x<0 || head.y<0 || head.x>=tileCount || head.y>=tileCount){
+  terminarJuego(); return;
+ }
+
+ for(let s of snake){
+  if(s.x===head.x && s.y===head.y){
+   terminarJuego(); return;
+  }
+ }
+
+ snake.unshift(head);
+
+ if(head.x===apple.x && head.y===apple.y){
+  score++;
+  generarManzana();
+ } else {
+  snake.pop();
+ }
+
+ dibujar();
+ actualizarInfo();
+}
+
+function dibujar(){
+ ctx.fillStyle="black";
+ ctx.fillRect(0,0,canvas.width,canvas.height);
+
+ ctx.fillStyle="red";
+ ctx.fillRect(apple.x*gridSize, apple.y*gridSize, gridSize, gridSize);
+
+ ctx.fillStyle="lime";
+ snake.forEach(s=>{
+  ctx.fillRect(s.x*gridSize, s.y*gridSize, gridSize-2, gridSize-2);
+ });
+}
+
+function actualizarInfo(){
+ tiempo = Math.floor((Date.now() - startTime)/1000);
+ document.getElementById("snakeInfo").textContent =
+  `Manzanas: ${score} | Tiempo: ${tiempo}s`;
+}
+
+function terminarJuego(){
+ clearInterval(gameInterval);
+
+ document.getElementById("snakeGameOver").innerHTML =
+  `💀 GAME OVER<br>🍎 Manzanas: ${score}<br>⏱ Tiempo: ${tiempo} segundos`;
+}
+</script>
+
+</body>
+</html>
+```
